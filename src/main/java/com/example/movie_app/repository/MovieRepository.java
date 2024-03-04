@@ -14,15 +14,18 @@ import java.util.List;
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     @Query("SELECT m FROM Movie m " +
-            "WHERE (:title IS NULL OR m.title = :title) " +
-            "AND (:genre IS NULL OR m.genre = :genre) " +
+            "WHERE (:title IS NULL OR m.title LIKE %:title%) " +
+            "AND (:genre IS NULL OR m.genre LIKE %:genre%) " +
+            "AND (:description IS NULL OR m.description LIKE %:description%) " +
             "AND (:genres IS NULL OR m.genre IN :genres) " +
             "AND (:year IS NULL OR m.year = :year) " +
             "AND (:yearFrom IS NULL OR m.year >= :yearFrom) " +
-            "AND (:yearTo IS NULL OR m.year <= :yearTo)")
+            "AND (:yearTo IS NULL OR m.year <= :yearTo)" +
+            "ORDER BY m.id ASC ")
     Page<Movie> findMoviesByFilters(
             @Param("title") String title,
             @Param("genre") String genre,
+            @Param("description") String description,
             @Param("genres") List<String> genres,
             @Param("year") Integer year,
             @Param("yearFrom") Integer yearFrom,

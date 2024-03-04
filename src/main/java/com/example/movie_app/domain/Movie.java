@@ -1,13 +1,16 @@
 package com.example.movie_app.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+
+import java.util.List;
 
 @Entity
 @Table(name = "movies")
 public class Movie {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(name = "title")
     private String title;
@@ -21,12 +24,35 @@ public class Movie {
     @Column(name = "year")
     private Integer year;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "movieID", fetch = FetchType.LAZY)
+    private List<Rating> ratings;
 
-    public Integer getId() {
+    @JsonIgnore
+    @OneToMany(mappedBy = "movieID", fetch = FetchType.LAZY)
+    private List<Review> reviews;
+
+    public List<Rating> getRatings() {
+        return ratings;
+    }
+
+    public void setRatings(List<Rating> ratings) {
+        this.ratings = ratings;
+    }
+
+    public List<Review> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(List<Review> reviews) {
+        this.reviews = reviews;
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

@@ -3,31 +3,38 @@ package com.example.movie_app.controller;
 import com.example.movie_app.domain.Movie;
 import com.example.movie_app.domain.Rating;
 import com.example.movie_app.domain.Review;
+import com.example.movie_app.dto.MovieDetailsDTO;
+import com.example.movie_app.request.RatingRequest;
+import com.example.movie_app.request.ReviewRequest;
 import com.example.movie_app.service.MovieService;
 import com.example.movie_app.service.RatingService;
 import com.example.movie_app.service.ReviewService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/movies")
 public class MovieController {
 
-    @Autowired
-    private MovieService movieService;
+    private final MovieService movieService;
 
-    @Autowired
-    private RatingService ratingService;
+    private final RatingService ratingService;
 
-    @Autowired
-    private ReviewService reviewService;
+    private final ReviewService reviewService;
+
+    public MovieController(MovieService movieService, RatingService ratingService, ReviewService reviewService) {
+        this.movieService = movieService;
+        this.ratingService = ratingService;
+        this.reviewService = reviewService;
+    }
 
     @GetMapping("/allMovies")
     public List<Movie> allMoviesList() {
@@ -35,16 +42,18 @@ public class MovieController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<Movie>> listMovies(
+    public ResponseEntity<Page<MovieDetailsDTO>> listMovies(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String genre,
+            @RequestParam(required = false) String description,
             @RequestParam(required = false) List<String> genres,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer yearFrom,
             @RequestParam(required = false) Integer yearTo,
             @PageableDefault(size = 20, sort = {"title"}, direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        Page<Movie> movies = movieService.findMoviesByFilters(title, genre, genres, year, yearFrom, yearTo, pageable);
+        Page<MovieDetailsDTO> movies = movieService.findMoviesByFilters(title, genre, description, genres, year, yearFrom, yearTo, pageable);
+
         return ResponseEntity.ok(movies);
     }
 
@@ -54,32 +63,46 @@ public class MovieController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Movie> findMovieById(@RequestParam(required = true) Long id) {
+    public ResponseEntity<MovieDetailsDTO> findMovieById(@PathVariable Long id) {
         Movie movie = movieService.findMovieById(id);
-        if (movie != null) {
-            return ResponseEntity.ok(movie);
-        } else {
+        if (movie == null) {
             return ResponseEntity.notFound().build();
         }
+
+        List<Rating> ratings = ratingService.findRatingsByMovie(id);
+        List<Review> reviews = reviewService.findReviewsByMovie(id);
+        double averageRating = movieService.calcAverageRating(ratings);
+
+        MovieDetailsDTO movieDetailsDTO = new MovieDetailsDTO(movie, ratings, reviews, averageRating);
+
+        return ResponseEntity.ok(movieDetailsDTO);
     }
 
-    @GetMapping("/{id}/ratings")
-    public ResponseEntity<List<Rating>> getRatingsForMovie(@PathVariable Long id) {
-        Movie movie = movieService.findMovieById(id);
-        List<Rating> ratings = ratingService.findRatingsByMovie(movie);
-        if (ratings.isEmpty()) {
-            return ResponseEntity.noContent().build();
+    @PostMapping("/{id}/rate")
+    public ResponseEntity<String> addRatingToMovie(@PathVariable Long id, @RequestBody RatingRequest request) {
+        if (request.getRating() < 1 || request.getRating() > 10) {
+            return ResponseEntity.badRequest().body("Rating should be between 1 and 10.");
         }
-        return ResponseEntity.ok(ratings);
+        Rating rating = ratingService.addRating(id, request.getRating());
+
+        if (rating != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body("Rating added successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add rating.");
+        }
     }
 
-    @GetMapping("/{id}/reviews")
-    public ResponseEntity<List<Review>> getReviewsForMovie(@PathVariable Long id) {
-        Movie movie = movieService.findMovieById(id);
-        List<Review> reviews = reviewService.findReviewsByMovie(movie);
-        if (reviews.isEmpty()) {
-            return ResponseEntity.noContent().build();
+    @PostMapping("/{id}/review")
+    public ResponseEntity<String> addReviewToMovie(@PathVariable Long id, @RequestBody ReviewRequest request) {
+        if (request.getReviewText() == null || request.getReviewText().isEmpty()) {
+            return ResponseEntity.badRequest().body("Review text cannot be empty.");
         }
-        return ResponseEntity.ok(reviews);
+        Review review = reviewService.addReview(id, request.getReviewText());
+
+        if (review != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body("Review added successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add review.");
+        }
     }
 }
