@@ -20,6 +20,10 @@ public class Review {
         this.reviewText = review;
     }
 
+    public Review() {
+
+    }
+
     public Long getId() {
         return Id;
     }

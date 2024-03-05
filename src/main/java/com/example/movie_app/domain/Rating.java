@@ -20,6 +20,10 @@ public class Rating {
         this.rating = rating;
     }
 
+    public Rating() {
+
+    }
+
     public Long getId() {
         return Id;
     }
