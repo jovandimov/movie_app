@@ -22,11 +22,8 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    private final MovieService movieService;
-
-    public ReviewController(ReviewService reviewService, MovieService movieService) {
+    public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
-        this.movieService = movieService;
     }
 
     @GetMapping
