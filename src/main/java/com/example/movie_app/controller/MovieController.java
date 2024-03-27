@@ -18,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/movies")
@@ -60,7 +59,7 @@ public class MovieController {
 
     @PostMapping("/add")
     public void addMovie(@RequestBody Movie movie) {
-        Movie newMovie = movieService.addMovie(movie);
+        movieService.addMovie(movie);
     }
 
     @GetMapping("/{id}")
